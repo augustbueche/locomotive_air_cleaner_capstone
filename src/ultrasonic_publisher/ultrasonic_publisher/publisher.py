@@ -7,7 +7,7 @@ class UltrasonicPublisher(Node):
     def __init__(self):
         super().__init__('ultrasonic_publisher')
         self.publisher_ = self.create_publisher(String, 'ultrasonic_data', 10)
-        self.serial_port = serial.Serial('/dev/ttyS0', 115200, timeout=1)
+        self.serial_port = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
         self.timer = self.create_timer(0.5, self.read_serial_data)
 
     def read_serial_data(self):
