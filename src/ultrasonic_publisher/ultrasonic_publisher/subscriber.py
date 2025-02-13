@@ -10,7 +10,7 @@ class UltrasonicSubscriber(Node):
             'ultrasonic_data',
             self.listener_callback,
             10)
-        self.subscription
+        self.subscription  # Prevent unused variable warning
 
     def listener_callback(self, msg):
         self.get_logger().info(f'Received data: {msg.data}')
