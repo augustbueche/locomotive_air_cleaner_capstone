@@ -15,6 +15,7 @@ setup(
     entry_points={
         'console_scripts': [
             'controller = piduino02.controller:main',
+            'motortest = piduino02.motortest:main',
         ],
     },
 )
