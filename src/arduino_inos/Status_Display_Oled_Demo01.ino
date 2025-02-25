@@ -55,3 +55,4 @@ void loop() {
 
     delay(3000); // Change frame every second
 }
+ 

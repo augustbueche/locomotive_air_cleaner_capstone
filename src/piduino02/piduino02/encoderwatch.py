@@ -2,25 +2,26 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-class UltrasonicSubscriber(Node):
+class EncoderWatch(Node):
     def __init__(self):
-        super().__init__('ultrasonic_subscriber')
+        super().__init__('encoderwatch')
         self.subscription = self.create_subscription(
             String,
-            'ultrasonic_data',
+            'encoder_data',
             self.listener_callback,
             10)
-        self.subscription  # Prevent unused variable warning
+        self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg):
-        self.get_logger().info(f'Received data: {msg.data}')
+        self.get_logger().info(f'Received encoder data: {msg.data}')
 
 def main(args=None):
     rclpy.init(args=args)
-    node = UltrasonicSubscriber()
+    node = EncoderWatch()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+     

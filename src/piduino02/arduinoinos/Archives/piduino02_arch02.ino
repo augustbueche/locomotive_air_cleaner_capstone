@@ -12,6 +12,13 @@ const int echoPinA = 13;
 const int trigPinB = 19;
 const int echoPinB = 18;
 
+// ESP32 Pin Locations - IR Encoders
+const int leftEncoderPin = 15;
+const int rightEncoderPin = 2;
+
+volatile long leftEncoderCount = 0;
+volatile long rightEncoderCount = 0;
+
 // PWM properties
 const int freq = 30000;
 const int pwmChannel = 0;
@@ -90,6 +97,16 @@ void ForwardMotors() {
     ledcWrite(enable2Pin, speed);
 }
 
+// Interrupt Service Routine (ISR) for the left encoder
+void leftEncoderISR() {
+    leftEncoderCount++;
+}
+
+// Interrupt Service Routine (ISR) for the right encoder
+void rightEncoderISR() {
+    rightEncoderCount++;
+}
+
 // Setup Function
 void setup() {
     pinMode(motor1Pin1, OUTPUT);
@@ -103,6 +120,12 @@ void setup() {
     pinMode(echoPinA, INPUT);
     pinMode(trigPinB, OUTPUT);
     pinMode(echoPinB, INPUT);
+
+    pinMode(leftEncoderPin, INPUT);
+    pinMode(rightEncoderPin, INPUT);
+
+    attachInterrupt(digitalPinToInterrupt(leftEncoderPin), leftEncoderISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(rightEncoderPin), rightEncoderISR, RISING);
 
     ledcAttachChannel(enable1Pin, freq, resolution, pwmChannel);
     ledcAttachChannel(enable2Pin, freq, resolution, pwmChannel);
@@ -167,7 +190,10 @@ void loop() {
         Serial.print("A:");
         Serial.print(distanceA);
         Serial.print(",B:");
-        Serial.println(distanceB);
+        Serial.print(distanceB);
+        Serial.print(",Left Encoder:");
+        Serial.print(leftEncoderCount);
+        Serial.print(",Right Encoder:");
+        Serial.println(rightEncoderCount);
     }
-}
- 
+} 
