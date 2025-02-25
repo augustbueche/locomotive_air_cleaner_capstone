@@ -12,6 +12,13 @@ const int echoPinA = 13;
 const int trigPinB = 19;
 const int echoPinB = 18;
 
+// ESP32 Pin Locations - IR Encoders
+const int leftEncoderPin = 15;
+const int rightEncoderPin = 2;
+
+volatile long leftEncoderCount = 0;
+volatile long rightEncoderCount = 0;
+
 // PWM properties
 const int freq = 30000;
 const int pwmChannel = 0;
@@ -21,6 +28,64 @@ int speed = 200;
 // Timer for non-blocking serial output
 unsigned long previousMillis = 0;
 const long interval = 300; // 300ms between serial messages
+
+// Interrupt Service Routine (ISR) for the left encoder
+void leftEncoderISR() {
+    leftEncoderCount++;
+}
+
+// Interrupt Service Routine (ISR) for the right encoder
+void rightEncoderISR() {
+    rightEncoderCount++;
+}
+
+// Setup Function
+void setup() {
+    pinMode(motor1Pin1, OUTPUT);
+    pinMode(motor1Pin2, OUTPUT);
+    pinMode(enable1Pin, OUTPUT);
+    pinMode(motor2Pin1, OUTPUT);
+    pinMode(motor2Pin2, OUTPUT);
+    pinMode(enable2Pin, OUTPUT);
+
+    pinMode(trigPinA, OUTPUT);
+    pinMode(echoPinA, INPUT);
+    pinMode(trigPinB, OUTPUT);
+    pinMode(echoPinB, INPUT);
+
+    pinMode(leftEncoderPin, INPUT);
+    pinMode(rightEncoderPin, INPUT);
+
+    attachInterrupt(digitalPinToInterrupt(leftEncoderPin), leftEncoderISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(rightEncoderPin), rightEncoderISR, RISING);
+
+    ledcAttachChannel(enable1Pin, freq, resolution, pwmChannel);
+    ledcAttachChannel(enable2Pin, freq, resolution, pwmChannel);
+
+    Serial.begin(115200);
+}
+
+// Function: Get Distance from Ultrasonic Sensor A
+float getDistanceA() {
+    digitalWrite(trigPinA, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPinA, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPinA, LOW);
+    long durationA = pulseIn(echoPinA, HIGH);
+    return (durationA * 0.034) / 2; // Convert to cm
+}
+
+// Function: Get Distance from Ultrasonic Sensor B
+float getDistanceB() {
+    digitalWrite(trigPinB, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPinB, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPinB, LOW);
+    long durationB = pulseIn(echoPinB, HIGH);
+    return (durationB * 0.034) / 2; // Convert to cm
+}
 
 // Function: Stop Motors
 void StopMotors() {
@@ -90,75 +155,10 @@ void ForwardMotors() {
     ledcWrite(enable2Pin, speed);
 }
 
-// Setup Function
-void setup() {
-    pinMode(motor1Pin1, OUTPUT);
-    pinMode(motor1Pin2, OUTPUT);
-    pinMode(enable1Pin, OUTPUT);
-    pinMode(motor2Pin1, OUTPUT);
-    pinMode(motor2Pin2, OUTPUT);
-    pinMode(enable2Pin, OUTPUT);
-
-    pinMode(trigPinA, OUTPUT);
-    pinMode(echoPinA, INPUT);
-    pinMode(trigPinB, OUTPUT);
-    pinMode(echoPinB, INPUT);
-
-    ledcAttachChannel(enable1Pin, freq, resolution, pwmChannel);
-    ledcAttachChannel(enable2Pin, freq, resolution, pwmChannel);
-
-    Serial.begin(115200);
-}
-
-// Function: Get Distance from Ultrasonic Sensor A
-float getDistanceA() {
-    digitalWrite(trigPinA, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPinA, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPinA, LOW);
-    long durationA = pulseIn(echoPinA, HIGH);
-    return (durationA * 0.034) / 2; // Convert to cm
-}
-
-// Function: Get Distance from Ultrasonic Sensor B
-float getDistanceB() {
-    digitalWrite(trigPinB, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPinB, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPinB, LOW);
-    long durationB = pulseIn(echoPinB, HIGH);
-    return (durationB * 0.034) / 2; // Convert to cm
-}
-
 // Main Loop
 void loop() {
     float distanceA = getDistanceA();
     float distanceB = getDistanceB();
-
-    // Motor control logic
-    if ((distanceA > 0 && distanceA < 22) || (distanceB > 0 && distanceB < 22)) {
-        StopMotors();
-        ReverseMotors();
-        if (distanceA < distanceB) {
-            TurnLeft();
-        } else {
-            TurnRight();
-        }
-    } 
-    else if ((distanceA >= 22 && distanceA < 30) || (distanceB >= 22 && distanceB < 30)) {
-        if (distanceA < distanceB) {
-            MinorTurnLeft();
-        } else {
-            MinorTurnRight();
-        }
-        ForwardMotors();
-    } 
-    else {
-        ForwardMotors();
-    }
-    
 
     // Non-blocking Serial Transmission
     unsigned long currentMillis = millis();
@@ -167,7 +167,38 @@ void loop() {
         Serial.print("A:");
         Serial.print(distanceA);
         Serial.print(",B:");
-        Serial.println(distanceB);
+        Serial.print(distanceB);
+        Serial.print(",Left Encoder:");
+        Serial.print(leftEncoderCount);
+        Serial.print(",Right Encoder:");
+        Serial.println(rightEncoderCount);
     }
-}
- 
+
+    // Read motor commands from serial
+    if (Serial.available() > 0) {
+        char command = Serial.read();
+        switch (command) {
+            case 'S':
+                StopMotors();
+                break;
+            case 'B':
+                ReverseMotors();
+                break;
+            case 'L':
+                TurnLeft();
+                break;
+            case 'R':
+                TurnRight();
+                break;
+            case 'ML':
+                MinorTurnLeft();
+                break;
+            case 'MR':
+                MinorTurnRight();
+                break;
+            case 'F':
+                ForwardMotors();
+                break;
+        }
+    }
+} 

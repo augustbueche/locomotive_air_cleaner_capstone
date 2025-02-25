@@ -14,7 +14,11 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'controller = piduino02.controller:main',
+           'controller = piduino02.controller:main',
+            'motortest = piduino02.motortest:main',
+            'encoderwatch = piduino02.encoderwatch:main',
+            'serial_publisher = piduino02.serial_publisher:main',
         ],
     },
 )
+ 
